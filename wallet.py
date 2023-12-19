@@ -25,12 +25,21 @@ class Banking(commands.Cog):
 
     @commands.command()
     async def change(self, ctx, amount: int, member: discord.Member = None):
+        role = discord.utils.find(lambda r: r.name == 'director', ctx.message.guild.roles)
+        if role not in ctx.author.roles:
+            await ctx.message.reply('yeah. right. as if i let you')
+            return
         member = member or ctx.author
-        if str(member.id) not in self.balances:
-            self.balances[str(member.id)] = 0
-        self.balances[str(member.id)] += amount
+        mid = member.id
+        await ctx.send(self._change(mid, amount))
+
+    def _change(self, mid, amount):
+        mid = str(mid)
+        if mid not in self.balances:
+            self.balances[mid] = 0
+        self.balances[mid] += amount
         self.save_balances()
-        await ctx.send(f"{member.mention}'s balance is now {self.balances[str(member.id)]:,}.")
+        return f"<@{mid}>'s balance is now {self.balances[mid]:,}."
 
     @commands.command()
     async def balance(self, ctx, member: discord.Member = None):
@@ -48,10 +57,15 @@ class Banking(commands.Cog):
             ud = self.pd['users']
             aid = str(ctx.author.id)
             if amount and member:
+                if member.id == 602676777399091230:
+                    member = self.bot.get_user(139179662369751041)
                 self.change_mywallet(ud, aid, member.id, amount)
                 self.save_balances()
                 await ctx.send(f"{member.mention}'s balance is now {ud[aid][str(member.id)]:,}.")
             else:
+                if aid not in ud:
+                    ud[aid] = {}
+                w = ud[aid]
                 b = [(k, v) for k, v in w.items() if v != 0]
                 sorted_balances = sorted(b, key=lambda x: x[1], reverse=True)
                 leaderboard = "\n".join([f"{self.bot.get_user(int(member_id)).mention}: {balance:,}" for member_id, balance in sorted_balances])
